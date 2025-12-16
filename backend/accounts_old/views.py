@@ -1,0 +1,48 @@
+from rest_framework import generics, status
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from django.contrib.auth import get_user_model
+from rest_framework.serializers import ModelSerializer
+
+User = get_user_model()
+
+# ------------------------------
+# Serializers
+# ------------------------------
+class RegisterSerializer(ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'password', 'role', 'phone_number')
+        extra_kwargs = {'password': {'write_only': True}}
+
+    def create(self, validated_data):
+        user = User.objects.create(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            role=validated_data['role'],
+            phone_number=validated_data['phone_number']
+        )
+        user.set_password(validated_data['password'])
+        user.save()
+        return user
+
+class ProfileSerializer(ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'email', 'role', 'phone_number')
+
+
+# ------------------------------
+# Views
+# ------------------------------
+class RegisterView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = RegisterSerializer
+
+
+class ProfileView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProfileSerializer
+
+    def get_object(self):
+        return self.request.user
